@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  # Serviço para o Django REST Framework
+  api:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - rabbitmq
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    networks:
+      - backend
+
+  # Serviço para o Celery
+  celery:
+    build: .
+    command: celery -A notification_project worker --loglevel=info
+    hostname: 'celery'
+    depends_on:
+      - rabbitmq
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    volumes:
+      - .:/app
+    networks:
+      - backend
+
+  # Serviço para o RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
